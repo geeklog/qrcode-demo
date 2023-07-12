@@ -100,7 +100,27 @@
 
     async function startCamera() {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        // 获取所有可用的媒体设备
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(device => device.kind === 'videoinput');
+        let backCameraDevice = null;
+
+        // 查找后置摄像头设备
+        for (const device of videoDevices) {
+          if (device.label.toLowerCase().includes('back')) {
+            backCameraDevice = device;
+            break;
+          }
+        }
+
+        // 如果没有找到后置摄像头，就使用第一个可用的摄像头设备
+        const deviceId = backCameraDevice ? backCameraDevice.deviceId : videoDevices[0].deviceId;
+
+        // 请求摄像头访问权限
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { deviceId: deviceId },
+        });
+
         video.srcObject = stream;
         video.play();
         requestAnimationFrame(tick);
