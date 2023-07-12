@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<body>
-  <video id="video" width="300" height="200" style="display:none;"></video>
-  <canvas id="canvas" width="300" height="200"></canvas>
-  <div><label for="">OpenCV QRCode:</label><div id="qrcodeResult"></div></div>
+<body style="position: relative;">
+  <video id="video" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;"></video>
+  <canvas id="canvas" width="300" height="200" style="display:none;"></canvas>
+  <div style="position: fixed; left: 10px; bottom: 10px; font-size: 20px;"><label for="">QRCode Detected:</label><div id="qrcodeResult"></div></div>
   <script>
     function loadScript(url) {
       return new Promise((resolve, reject) => {
@@ -100,12 +100,10 @@
 
     async function startCamera() {
       try {
-        // 获取所有可用的媒体设备
         const devices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = devices.filter(device => device.kind === 'videoinput');
         let backCameraDevice = null;
 
-        // 查找后置摄像头设备
         for (const device of videoDevices) {
           if (device.label.toLowerCase().includes('back')) {
             backCameraDevice = device;
@@ -113,17 +111,21 @@
           }
         }
 
-        // 如果没有找到后置摄像头，就使用第一个可用的摄像头设备
         const deviceId = backCameraDevice ? backCameraDevice.deviceId : videoDevices[0].deviceId;
 
-        // 请求摄像头访问权限
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { deviceId: deviceId },
         });
 
         video.srcObject = stream;
         video.play();
-        requestAnimationFrame(tick);
+
+        // 等待视频准备好并获取视频尺寸
+        video.onloadedmetadata = () => {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          requestAnimationFrame(tick);
+        };
       } catch (err) {
         console.error('Error accessing the camera:', err);
       }
