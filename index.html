@@ -126,7 +126,7 @@
         const deviceId = backCameraDevice ? backCameraDevice.deviceId : videoDevices[0].deviceId;
 
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { deviceId: deviceId },
+          video: backCameraDevice? { deviceId: backCameraDevice.deviceId } :  { facingMode: 'environment' },
         });
 
         video.srcObject = stream;
