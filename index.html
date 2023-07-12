@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<body>
+  <video id="video" width="300" height="200" style="display:none;"></video>
+  <canvas id="canvas" width="300" height="200"></canvas>
+  <div><label for="">OpenCV QRCode:</label><div id="qrcodeResult"></div></div>
+  <script>
+    function loadScript(url) {
+      return new Promise((resolve, reject) => {
+        let script = document.createElement("script");
+        script.setAttribute("async", "");
+        script.setAttribute("type", "text/javascript");
+        script.setAttribute("id", "opencvjs");
+        script.addEventListener("load", async () => {
+          if (cv.getBuildInformation) {
+            console.log(cv.getBuildInformation());
+            resolve();
+          } else {
+            // WASM
+            if (cv instanceof Promise) {
+              cv = await cv;
+              console.log(cv.getBuildInformation());
+              resolve();
+            } else {
+              cv["onRuntimeInitialized"] = () => {
+                console.log(cv.getBuildInformation());
+                resolve();
+              };
+            }
+          }
+        });
+        script.addEventListener("error", () => {
+          reject();
+        });
+        script.src = url;
+        let node = document.getElementsByTagName("script")[0];
+        node.parentNode.insertBefore(script, node);
+      });
+    };
+
+    async function fetchModelsData(name) {
+      const response = await fetch(`./models/${name}`, { method: "GET" });
+      const data = await response.arrayBuffer();
+      return new Uint8Array(data);
+    };
+
+    let qrcode_detector = undefined;
+    const OPENCV_URL = "./opencv.js";
+    
+    loadScript(OPENCV_URL)
+      .then(() => loadModels())
+      .catch(() => alert("Failed to load " + OPENCV_URL));
+
+    async function loadModels() {
+      if (qrcode_detector)
+        return;
+      
+      const detect_proto = "detect.prototxt";
+      const detect_weight = "detect.caffemodel";
+      const sr_proto = "sr.prototxt";
+      const sr_weight = "sr.caffemodel";
+
+      const dp = await fetchModelsData(detect_proto);
+      const dw = await fetchModelsData(detect_weight);
+      const sp = await fetchModelsData(sr_proto);
+      const sw = await fetchModelsData(sr_weight);
+
+      cv.FS_createDataFile("/", "detect.prototxt", dp, true, false, false);
+      cv.FS_createDataFile("/", "detect.caffemodel", dw, true, false, false);
+      cv.FS_createDataFile("/", "sr.prototxt", sp, true, false, false);
+      cv.FS_createDataFile("/", "sr.caffemodel", sw, true, false, false);
+
+      qrcode_detector = new cv.wechat_qrcode_WeChatQRCode(
+        "detect.prototxt",
+        "detect.caffemodel",
+        "sr.prototxt",
+        "sr.caffemodel"
+      );
+    }
+
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    function opencvDetect() {
+      if (!qrcode_detector)
+        return;
+      let inputImage = cv.imread('canvas', cv.IMREAD_GRAYSCALE);
+      let points_vec = new cv.MatVector();
+      let res = qrcode_detector.detectAndDecode(inputImage, points_vec);
+      if (res.size() > 0) {
+        let qrcodes = [];
+        let divQRCodeResult = document.getElementById('qrcodeResult');  
+        let qrcodeResults = [];
+        for (let i=0; i<res.size(); i++) {
+          qrcodeResults.push(res.get(i));
+        }
+        divQRCodeResult.innerHTML = qrcodeResults.join("<br>");
+      }
+    }
+
+    async function startCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+        video.play();
+        requestAnimationFrame(tick);
+      } catch (err) {
+        console.error('Error accessing the camera:', err);
+      }
+    }
+
+    function tick() {
+      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        opencvDetect();
+      }
+      requestAnimationFrame(tick);
+    }
+
+    startCamera();
+    </script>
+</body>
