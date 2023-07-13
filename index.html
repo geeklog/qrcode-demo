@@ -192,11 +192,11 @@
       if (zoomLevel > capabilities.zoom.max)
         zoomLevel = capabilities.zoom.max;
       
-      console.log('Resolve zoomLevel to ' + zoomLevel);
+      console.log('Resolve zoomLevel to ' + zoomLevel + ' (min: ' + capabilities.zoom.min + ', max: ' + capabilities.zoom.max + ')');
       
       track.applyConstraints({advanced: [ {zoom: zoomLevel} ]});
     }
 
-    startCamera(1.0);
+    startCamera();
     </script>
 </body>
