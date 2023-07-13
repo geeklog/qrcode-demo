@@ -134,6 +134,7 @@
         });
 
         video.srcObject = stream;
+        video.setAttribute('playsinline', 'true');
         video.play();
 
         // 等待视频准备好并获取视频尺寸
