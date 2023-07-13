@@ -166,7 +166,7 @@
         }
       } else {
         framesWithoutQRCode++;
-        if (framesWithoutQRCode >= 30 * 5) {
+        if (framesWithoutQRCode >= 30 * 1) {
           if (zoomLevel !== 2) {
             zoomLevel = 2;
             setCameraZoomLevel(video.srcObject, zoomLevel);
