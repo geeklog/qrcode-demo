@@ -101,7 +101,11 @@
         }
         divQRCodeResult.innerHTML = qrcodeResults.join("<br>");
       }
+      return res.size() > 0;
     }
+
+    let framesWithoutQRCode = 0;
+    let zoomLevel = 1;
 
     async function startCamera() {
       try {
@@ -119,7 +123,6 @@
         let deviceLabels = videoDevices.map(device => device.label).join('<br>');
         document.getElementById("devices").innerHTML = deviceLabels;
         
-        
         for (const device of videoDevices) {
           if (device.label.toLowerCase().includes('back')) {
             backCameraDevice = device;
@@ -130,14 +133,13 @@
         const deviceId = backCameraDevice ? backCameraDevice.deviceId : videoDevices[0].deviceId;
 
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: backCameraDevice? { deviceId: backCameraDevice.deviceId } :  { facingMode: 'environment' },
+          video: backCameraDevice ? { deviceId: backCameraDevice.deviceId } : { facingMode: 'environment' },
         });
 
         video.srcObject = stream;
         video.setAttribute('playsinline', 'true');
         video.play();
 
-        // 等待视频准备好并获取视频尺寸
         video.onloadedmetadata = () => {
           canvas.width = video.videoWidth;
           canvas.height = video.videoHeight;
@@ -149,13 +151,52 @@
     }
 
     function tick() {
-      if (video.readyState === video.HAVE_ENOUGH_DATA) {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        opencvDetect();
+      if (video.readyState !== video.HAVE_ENOUGH_DATA) {
+        return;
+      }
+      
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      let detected = opencvDetect();
+      if (detected) {
+        framesWithoutQRCode = 0;
+        if (zoomLevel !== 1) {
+          zoomLevel = 1;
+          setCameraZoomLevel(video.srcObject, zoomLevel);
+        }
+      } else {
+        framesWithoutQRCode++;
+        if (framesWithoutQRCode >= 30 * 5) {
+          if (zoomLevel !== 1.5) {
+            zoomLevel = 1.5;
+            setCameraZoomLevel(video.srcObject, zoomLevel);
+          }
+        }
       }
       requestAnimationFrame(tick);
     }
 
-    startCamera();
+    function setCameraZoomLevel(mediaStream, zoomLevel) {
+      console.log(`setCameraZoomLevel to ${zoomLevel}`);
+      const [track] = mediaStream.getVideoTracks();
+      const capabilities = track.getCapabilities();
+      const settings = track.getSettings();
+
+      // Check whether zoom is supported or not.
+      if (!('zoom' in settings)) {
+        console.error('Zoom is not supported by ' + track.label);
+      }
+
+      if (zoomLevel < capabilities.zoom.min)
+        zoomLevel = capabilities.zoom.min;
+      if (zoomLevel > capabilities.zoom.max)
+        zoomLevel = capabilities.zoom.max;
+      
+      console.log('Resolve zoomLevel to ' + zoomLevel);
+      
+      track.applyConstraints({advanced: [ {zoom: event.target.value} ]});
+    }
+
+    startCamera(1.0);
     </script>
 </body>
