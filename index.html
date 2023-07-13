@@ -194,7 +194,7 @@
       
       console.log('Resolve zoomLevel to ' + zoomLevel);
       
-      track.applyConstraints({advanced: [ {zoom: event.target.value} ]});
+      track.applyConstraints({advanced: [ {zoom: zoomLevel} ]});
     }
 
     startCamera(1.0);
