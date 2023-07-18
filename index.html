@@ -185,6 +185,7 @@
       // Check whether zoom is supported or not.
       if (!('zoom' in settings)) {
         console.error('Zoom is not supported by ' + track.label);
+        return;
       }
 
       if (zoomLevel < capabilities.zoom.min)
