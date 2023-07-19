@@ -97,7 +97,8 @@
         let divQRCodeResult = document.getElementById('qrcodeResult');  
         let qrcodeResults = [];
         for (let i=0; i<res.size(); i++) {
-          qrcodeResults.push(res.get(i));
+          qrcodeResults.push(res.get(i).text);
+          qrcodeResults.push(res.get(i).rawBytes);
         }
         divQRCodeResult.innerHTML = qrcodeResults.join("<br>");
       }
